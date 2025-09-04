@@ -11,8 +11,8 @@ export class GithubIntegrationService extends APIService {
     super(API_BASE_URL);
   }
 
-  async listAllRepositories(workspaceSlug: string, integrationSlug: string): Promise<any> {
-    return this.get(`/api/workspaces/${workspaceSlug}/workspace-integrations/${integrationSlug}/github-repositories`)
+  async listAllRepositories(workspaceSlug: string, integrationId: string): Promise<any> {
+    return this.get(`/api/workspaces/${workspaceSlug}/workspace-integrations/${integrationId}/github-repositories`)
       .then((response) => response?.data)
       .catch((error) => {
         throw error?.response?.data;

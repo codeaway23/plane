@@ -128,7 +128,16 @@ export class ProjectService extends APIService {
   ): Promise<any> {
     return this.post(
       `/api/workspaces/${workspaceSlug}/projects/${projectId}/workspace-integrations/${workspaceIntegrationId}/github-repository-sync/`,
-      data
+      {
+        repository: {
+          id: data.repository_id,
+          name: data.name,
+          html_url: data.url,
+          owner: {
+            login: data.owner,
+          },
+        },
+      }
     )
       .then((response) => response?.data)
       .catch((error) => {

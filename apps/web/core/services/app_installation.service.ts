@@ -9,7 +9,10 @@ export class AppInstallationService extends APIService {
   }
 
   async addInstallationApp(workspaceSlug: string, provider: string, data: any): Promise<any> {
-    return this.post(`/api/workspaces/${workspaceSlug}/workspace-integrations/${provider}/`, data)
+    return this.post(`/api/workspaces/${workspaceSlug}/workspace-integrations/`, {
+      provider,
+      ...data,
+    })
       .then((response) => response?.data)
       .catch((error) => {
         throw error?.response;

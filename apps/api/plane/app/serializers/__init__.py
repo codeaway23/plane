@@ -130,3 +130,10 @@ from .draft import (
     DraftIssueSerializer,
     DraftIssueDetailSerializer,
 )
+
+from .integration import (
+    IntegrationSerializer,
+    WorkspaceIntegrationSerializer,
+    GithubRepositorySerializer,
+    GithubRepositorySyncSerializer,
+)

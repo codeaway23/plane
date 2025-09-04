@@ -32,7 +32,7 @@ export const SelectRepository: React.FC<Props> = (props) => {
 
     return `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/workspaces/${workspaceSlug}/workspace-integrations/${
       integration.id
-    }/github-repositories/?page=${++pageIndex}`;
+    }/github-repositories/?page=${pageIndex + 1}`;
   };
 
   const fetchGithubRepos = async (url: string) => {
@@ -43,10 +43,11 @@ export const SelectRepository: React.FC<Props> = (props) => {
 
   const { data: paginatedData, size, setSize, isValidating } = useSWRInfinite(getKey, fetchGithubRepos);
 
-  let userRepositories = (paginatedData ?? []).map((data) => data.repositories).flat();
+  // The API returns an array of repositories directly, not wrapped in a repositories property
+  let userRepositories = (paginatedData ?? []).flat();
   userRepositories = userRepositories.filter((data) => data?.id);
 
-  const totalCount = paginatedData && paginatedData.length > 0 ? paginatedData[0].total_count : 0;
+  const totalCount = userRepositories.length; // For now, we'll use the current count
 
   const options =
     userRepositories.map((repo) => ({

@@ -1446,6 +1446,9 @@
           }
         }
       },
+      "integrations": {
+        "title": "Integrations"
+      },
       "webhooks": {
         "heading": "Webhooks",
         "description": "Automate notifications to external services when project events occur.",
