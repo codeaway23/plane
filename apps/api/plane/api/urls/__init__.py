@@ -7,6 +7,7 @@ from .intake import urlpatterns as intake_patterns
 from .member import urlpatterns as member_patterns
 from .asset import urlpatterns as asset_patterns
 from .user import urlpatterns as user_patterns
+from .stripe import urlpatterns as stripe_patterns
 
 urlpatterns = [
     *asset_patterns,
@@ -18,4 +19,5 @@ urlpatterns = [
     *intake_patterns,
     *member_patterns,
     *user_patterns,
+    *stripe_patterns,
 ]

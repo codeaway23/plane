@@ -1,8 +1,7 @@
 export enum EProductSubscriptionEnum {
   FREE = "FREE",
-  ONE = "ONE",
+  STARTER = "STARTER",
   PRO = "PRO",
-  BUSINESS = "BUSINESS",
   ENTERPRISE = "ENTERPRISE",
 }
 
@@ -17,7 +16,7 @@ export type IPaymentProductPrice = {
   workspace_amount: number;
 };
 
-export type TProductSubscriptionType = "FREE" | "ONE" | "PRO" | "BUSINESS" | "ENTERPRISE";
+export type TProductSubscriptionType = "FREE" | "STARTER" | "PRO" | "ENTERPRISE";
 
 export type IPaymentProduct = {
   description: string;

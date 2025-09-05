@@ -11,15 +11,11 @@ type TDiscountInfoProps = {
   subscriptionType: EProductSubscriptionEnum;
 };
 
-const PLANS_WITH_DISCOUNT = [EProductSubscriptionEnum.PRO];
+const PLANS_WITH_DISCOUNT: EProductSubscriptionEnum[] = [];
 
 const getActualPrice = (frequency: TBillingFrequency, subscriptionType: EProductSubscriptionEnum): number | null => {
-  switch (subscriptionType) {
-    case EProductSubscriptionEnum.PRO:
-      return frequency === "month" ? 10 : 8;
-    default:
-      return null;
-  }
+  // No discounts for any plans currently
+  return null;
 };
 
 export const DiscountInfo = ({ className, currency, frequency, price, subscriptionType }: TDiscountInfoProps) => {

@@ -25,12 +25,10 @@ export const getSubscriptionName = (planVariant: EProductSubscriptionEnum): stri
   switch (planVariant) {
     case EProductSubscriptionEnum.FREE:
       return "Free";
-    case EProductSubscriptionEnum.ONE:
-      return "One";
+    case EProductSubscriptionEnum.STARTER:
+      return "Starter";
     case EProductSubscriptionEnum.PRO:
       return "Pro";
-    case EProductSubscriptionEnum.BUSINESS:
-      return "Business";
     case EProductSubscriptionEnum.ENTERPRISE:
       return "Enterprise";
     default:
@@ -45,14 +43,12 @@ export const getSubscriptionName = (planVariant: EProductSubscriptionEnum): stri
  */
 export const getBaseSubscriptionName = (planVariant: TProductSubscriptionType): string => {
   switch (planVariant) {
-    case EProductSubscriptionEnum.ONE:
+    case EProductSubscriptionEnum.STARTER:
       return getSubscriptionName(EProductSubscriptionEnum.FREE);
     case EProductSubscriptionEnum.PRO:
-      return getSubscriptionName(EProductSubscriptionEnum.FREE);
-    case EProductSubscriptionEnum.BUSINESS:
-      return getSubscriptionName(EProductSubscriptionEnum.PRO);
+      return getSubscriptionName(EProductSubscriptionEnum.STARTER);
     case EProductSubscriptionEnum.ENTERPRISE:
-      return getSubscriptionName(EProductSubscriptionEnum.BUSINESS);
+      return getSubscriptionName(EProductSubscriptionEnum.PRO);
     default:
       return "--";
   }

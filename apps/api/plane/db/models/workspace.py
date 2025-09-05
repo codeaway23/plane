@@ -135,6 +135,15 @@ class Workspace(BaseModel):
     organization_size = models.CharField(max_length=20, blank=True, null=True)
     timezone = models.CharField(max_length=255, default="UTC", choices=TIMEZONE_CHOICES)
     background_color = models.CharField(max_length=255, default=get_random_color)
+    
+    # Stripe subscription fields
+    stripe_customer_id = models.CharField(max_length=255, blank=True, null=True, help_text="Stripe customer ID")
+    stripe_subscription_id = models.CharField(max_length=255, blank=True, null=True, help_text="Stripe subscription ID")
+    subscription_status = models.CharField(max_length=50, default="free", help_text="Current subscription status")
+    subscription_price_id = models.CharField(max_length=255, blank=True, null=True, help_text="Stripe price ID for current subscription")
+    subscription_current_period_start = models.DateTimeField(blank=True, null=True, help_text="Current subscription period start")
+    subscription_current_period_end = models.DateTimeField(blank=True, null=True, help_text="Current subscription period end")
+    subscription_cancel_at_period_end = models.BooleanField(default=False, help_text="Whether subscription will cancel at period end")
 
     def __str__(self):
         """Return name of the Workspace"""

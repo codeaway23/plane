@@ -4,7 +4,6 @@ import { FC } from "react";
 import { observer } from "mobx-react";
 // plane imports
 import {
-  BUSINESS_PLAN_FEATURES,
   ENTERPRISE_PLAN_FEATURES,
   PLANE_COMMUNITY_PRODUCTS,
   PRO_PLAN_FEATURES,
@@ -83,13 +82,13 @@ export const PaidPlanUpgradeModal: FC<PaidPlanUpgradeModalProps> = observer((pro
           </div>
           <div className={cn(COMMON_CARD_CLASSNAME)}>
             <PlanUpgradeCard
-              planVariant={EProductSubscriptionEnum.BUSINESS}
-              product={PLANE_COMMUNITY_PRODUCTS[EProductSubscriptionEnum.BUSINESS]}
-              features={BUSINESS_PLAN_FEATURES}
+              planVariant={EProductSubscriptionEnum.ENTERPRISE}
+              product={PLANE_COMMUNITY_PRODUCTS[EProductSubscriptionEnum.ENTERPRISE]}
+              features={ENTERPRISE_PLAN_FEATURES}
               verticalFeatureList
               extraFeatures={
                 <p className={COMMON_EXTRA_FEATURES_CLASSNAME}>
-                  <a href={SUBSCRIPTION_WEBPAGE_URLS[EProductSubscriptionEnum.BUSINESS]} target="_blank">
+                  <a href={SUBSCRIPTION_WEBPAGE_URLS[EProductSubscriptionEnum.ENTERPRISE]} target="_blank">
                     See full features list
                   </a>
                 </p>

@@ -110,6 +110,16 @@ cors_origins_raw = os.environ.get("CORS_ALLOWED_ORIGINS", "")
 cors_allowed_origins = [
     origin.strip() for origin in cors_origins_raw.split(",") if origin.strip()
 ]
+
+# Add localhost origins for development
+if not cors_allowed_origins:
+    cors_allowed_origins = [
+        "http://localhost:3000",
+        "http://localhost:3001", 
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:3001",
+    ]
+
 if cors_allowed_origins:
     CORS_ALLOWED_ORIGINS = cors_allowed_origins
     secure_origins = (
@@ -121,7 +131,25 @@ else:
     CORS_ALLOW_ALL_ORIGINS = True
     secure_origins = False
 
-CORS_ALLOW_HEADERS = [*default_headers, "X-API-Key"]
+# CORS allowed methods
+CORS_ALLOW_METHODS = [
+    "DELETE",
+    "GET", 
+    "OPTIONS",
+    "PATCH",
+    "POST",
+    "PUT",
+]
+
+# CORS allowed headers
+CORS_ALLOW_HEADERS = [
+    *default_headers, 
+    "X-API-Key",
+    "Content-Type",
+    "Authorization",
+    "X-CSRFToken",
+    "X-Requested-With",
+]
 
 # Application Settings
 WSGI_APPLICATION = "plane.wsgi.application"
@@ -469,3 +497,17 @@ if ENABLE_DRF_SPECTACULAR:
 # MongoDB Settings
 MONGO_DB_URL = os.environ.get("MONGO_DB_URL", False)
 MONGO_DB_DATABASE = os.environ.get("MONGO_DB_DATABASE", False)
+
+# Stripe Configuration
+STRIPE_PUBLISHABLE_KEY = os.environ.get("STRIPE_PUBLISHABLE_KEY", "")
+STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "")
+STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
+STRIPE_WEBHOOK_ENDPOINT = os.environ.get("STRIPE_WEBHOOK_ENDPOINT", "/api/stripe/webhook/")
+STRIPE_SUCCESS_URL = os.environ.get("STRIPE_SUCCESS_URL", "http://localhost/settings/billing?success=true")
+STRIPE_CANCEL_URL = os.environ.get("STRIPE_CANCEL_URL", "http://localhost/settings/billing?canceled=true")
+
+# Stripe Product and Price IDs for different plans
+STRIPE_STARTER_PRODUCT_ID = os.environ.get("STRIPE_STARTER_PRODUCT_ID", "prod_SzsI5lUDD8w79Y")
+STRIPE_STARTER_PRICE_ID = os.environ.get("STRIPE_STARTER_PRICE_ID", "price_1S3sXzEPoCJr6b2KycIoGsqy")
+STRIPE_PRO_PRODUCT_ID = os.environ.get("STRIPE_PRO_PRODUCT_ID", "prod_SzsRSwxfhUfAel")
+STRIPE_PRO_PRICE_ID = os.environ.get("STRIPE_PRO_PRICE_ID", "price_1S3sgqEPoCJr6b2K97l2hJU7")

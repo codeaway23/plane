@@ -61,6 +61,7 @@
     "react-pdf-html": "^2.1.2",
     "react-popper": "^2.3.0",
     "recharts": "^2.12.7",
+    "@stripe/stripe-js": "^2.4.0",
     "sharp": "catalog:",
     "smooth-scroll-into-view-if-needed": "^2.0.2",
     "swr": "catalog:",

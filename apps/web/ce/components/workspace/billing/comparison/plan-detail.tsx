@@ -1,16 +1,14 @@
-import { FC } from "react";
+import { FC, useState } from "react";
 import { observer } from "mobx-react";
 // plane imports
 import {
-  SUBSCRIPTION_REDIRECTION_URLS,
   SUBSCRIPTION_WITH_BILLING_FREQUENCY,
-  TALK_TO_SALES_URL,
   WORKSPACE_SETTINGS_TRACKER_ELEMENTS,
   WORKSPACE_SETTINGS_TRACKER_EVENTS,
 } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { EProductSubscriptionEnum, TBillingFrequency } from "@plane/types";
-import { getButtonStyling, getUpgradeButtonStyle } from "@plane/ui";
+import { getButtonStyling, getUpgradeButtonStyle, Loader } from "@plane/ui";
 import { cn, getSubscriptionName } from "@plane/utils";
 // components
 import { DiscountInfo } from "@/components/license/modal/card/discount-info";
@@ -18,6 +16,9 @@ import { TPlanDetail } from "@/constants/plans";
 // local imports
 import { captureSuccess } from "@/helpers/event-tracker.helper";
 import { PlanFrequencyToggle } from "./frequency-toggle";
+import { StripeService } from "@/services/stripe.service";
+import { useWorkspace } from "@/hooks/store/use-workspace";
+import { useUser } from "@/hooks/store/user";
 
 type TPlanDetailProps = {
   subscriptionType: EProductSubscriptionEnum;
@@ -33,31 +34,81 @@ export const PlanDetail: FC<TPlanDetailProps> = observer((props) => {
   const { subscriptionType, planDetail, billingFrequency, setBillingFrequency } = props;
   // plane hooks
   const { t } = useTranslation();
+  const { currentWorkspace } = useWorkspace();
+  const { isAuthenticated } = useUser();
+  // state
+  const [isLoading, setIsLoading] = useState(false);
+  // services
+  const stripeService = new StripeService();
+
   // subscription details
   const subscriptionName = getSubscriptionName(subscriptionType);
   const isSubscriptionActive = planDetail.isActive;
   // pricing details
-  const displayPrice = billingFrequency === "month" ? planDetail.monthlyPrice : planDetail.yearlyPrice;
-  const pricingDescription = isSubscriptionActive ? "a user per month" : "Quote on request";
-  const pricingSecondaryDescription =
-    billingFrequency === "month"
-      ? planDetail.monthlyPriceSecondaryDescription
-      : planDetail.yearlyPriceSecondaryDescription;
+  const displayPrice = planDetail.monthlyPrice;
+  const pricingDescription = isSubscriptionActive ? "per user per month" : "Quote on request";
+  const pricingSecondaryDescription = planDetail.monthlyPriceSecondaryDescription;
   // helper styles
-  const upgradeButtonStyle = getUpgradeButtonStyle(subscriptionType, false) ?? getButtonStyling("primary", "lg");
+  const upgradeButtonStyle = getUpgradeButtonStyle(subscriptionType, isLoading) ?? getButtonStyling("primary", "lg");
 
-  const handleRedirection = () => {
-    const frequency = billingFrequency ?? "year";
-    // Get the redirection URL based on the subscription type and billing frequency
-    const redirectUrl = SUBSCRIPTION_REDIRECTION_URLS[subscriptionType][frequency] ?? TALK_TO_SALES_URL;
-    captureSuccess({
-      eventName: WORKSPACE_SETTINGS_TRACKER_EVENTS.upgrade_plan_redirected,
-      payload: {
-        subscriptionType,
-      },
-    });
-    // Open the URL in a new tab
-    window.open(redirectUrl, "_blank");
+  const handleStripeCheckout = async () => {
+    if (!currentWorkspace || !isSubscriptionActive) return;
+
+    // Handle Enterprise plan - do nothing for now
+    if (subscriptionType === EProductSubscriptionEnum.ENTERPRISE) {
+      console.log("Enterprise plan selected - no action taken");
+      return;
+    }
+
+    // Check if user is authenticated
+    if (!isAuthenticated) {
+      console.error("User must be authenticated to create checkout session");
+      // Redirect to login page
+      window.location.href = "/";
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      // Get the price ID based on subscription type
+      const priceId = getPriceId(subscriptionType);
+
+      if (!priceId) {
+        throw new Error("Price ID not found for this plan");
+      }
+
+      // Create success and cancel URLs
+      const successUrl = `${window.location.origin}/${currentWorkspace.slug}/settings/billing?success=true`;
+      const cancelUrl = `${window.location.origin}/${currentWorkspace.slug}/settings/billing?canceled=true`;
+
+      // Track the event
+      captureSuccess({
+        eventName: WORKSPACE_SETTINGS_TRACKER_EVENTS.upgrade_plan_redirected,
+        payload: {
+          subscriptionType,
+        },
+      });
+
+      // Redirect to Stripe checkout
+      await stripeService.redirectToCheckout(currentWorkspace.slug, priceId, successUrl, cancelUrl);
+    } catch (error) {
+      console.error("Error creating checkout session:", error);
+      // You might want to show a toast notification here
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Helper function to get price ID based on subscription type
+  const getPriceId = (subscriptionType: EProductSubscriptionEnum): string | null => {
+    // Updated with actual Stripe price IDs from your dashboard
+    const priceMap: Record<string, string> = {
+      [EProductSubscriptionEnum.STARTER]: "price_1S3sXzEPoCJr6b2KycIoGsqy", // $8.00 USD Per month (Starter plan)
+      [EProductSubscriptionEnum.PRO]: "price_1S3sgqEPoCJr6b2K97l2hJU7", // $14.00 USD Per month (Pro plan)
+    };
+
+    return priceMap[subscriptionType] || null;
   };
 
   return (
@@ -75,7 +126,7 @@ export const PlanDetail: FC<TPlanDetailProps> = observer((props) => {
             <div className="flex items-center gap-1 text-2xl text-custom-text-100 font-semibold transition-all duration-300">
               <DiscountInfo
                 currency="$"
-                frequency={billingFrequency ?? "month"}
+                frequency="month"
                 price={displayPrice}
                 subscriptionType={subscriptionType}
                 className="mr-1.5"
@@ -93,23 +144,13 @@ export const PlanDetail: FC<TPlanDetailProps> = observer((props) => {
         </div>
       </div>
 
-      {/* Billing frequency toggle */}
-      {SUBSCRIPTION_WITH_BILLING_FREQUENCY.includes(subscriptionType) && billingFrequency && (
-        <div className="h-8 py-0.5">
-          <PlanFrequencyToggle
-            subscriptionType={subscriptionType}
-            monthlyPrice={planDetail.monthlyPrice || 0}
-            yearlyPrice={planDetail.yearlyPrice || 0}
-            selectedFrequency={billingFrequency}
-            setSelectedFrequency={setBillingFrequency}
-          />
-        </div>
-      )}
+      {/* Billing frequency toggle - removed for monthly-only pricing */}
 
       {/* Subscription button */}
       <div className={cn("flex flex-col gap-1 py-3 items-start transition-all duration-300")}>
         <button
-          onClick={handleRedirection}
+          onClick={isSubscriptionActive ? handleStripeCheckout : undefined}
+          disabled={isLoading || !isSubscriptionActive || !isAuthenticated}
           className={cn(upgradeButtonStyle, COMMON_BUTTON_STYLE)}
           data-ph-element={
             isSubscriptionActive
@@ -117,7 +158,18 @@ export const PlanDetail: FC<TPlanDetailProps> = observer((props) => {
               : WORKSPACE_SETTINGS_TRACKER_ELEMENTS.BILLING_TALK_TO_SALES_BUTTON
           }
         >
-          {isSubscriptionActive ? `Upgrade to ${subscriptionName}` : t("common.upgrade_cta.talk_to_sales")}
+          {isLoading ? (
+            <div className="flex items-center gap-2">
+              <Loader.Item height="1rem" width="1rem" />
+              <span>Redirecting to Stripe...</span>
+            </div>
+          ) : isSubscriptionActive ? (
+            `Upgrade to ${subscriptionName}`
+          ) : subscriptionType === EProductSubscriptionEnum.ENTERPRISE ? (
+            "Contact Sales"
+          ) : (
+            "Contact Sales"
+          )}
         </button>
       </div>
     </div>

@@ -5,9 +5,8 @@ import { EProductSubscriptionEnum, IPaymentProduct, TBillingFrequency, TProductB
  */
 export const DEFAULT_PRODUCT_BILLING_FREQUENCY: TProductBillingFrequency = {
   [EProductSubscriptionEnum.FREE]: undefined,
-  [EProductSubscriptionEnum.ONE]: undefined,
+  [EProductSubscriptionEnum.STARTER]: "month",
   [EProductSubscriptionEnum.PRO]: "month",
-  [EProductSubscriptionEnum.BUSINESS]: "month",
   [EProductSubscriptionEnum.ENTERPRISE]: "month",
 };
 
@@ -15,8 +14,8 @@ export const DEFAULT_PRODUCT_BILLING_FREQUENCY: TProductBillingFrequency = {
  * Subscription types that support billing frequency toggle (monthly/yearly)
  */
 export const SUBSCRIPTION_WITH_BILLING_FREQUENCY = [
+  EProductSubscriptionEnum.STARTER,
   EProductSubscriptionEnum.PRO,
-  EProductSubscriptionEnum.BUSINESS,
   EProductSubscriptionEnum.ENTERPRISE,
 ];
 
@@ -27,53 +26,37 @@ export const SUBSCRIPTION_WITH_BILLING_FREQUENCY = [
 export const PLANE_COMMUNITY_PRODUCTS: Record<string, IPaymentProduct> = {
   [EProductSubscriptionEnum.PRO]: {
     id: EProductSubscriptionEnum.PRO,
-    name: "Plane Pro",
+    name: "Pro Plan",
     description:
-      "More views, more cycles powers, more pages features, new reports, and better dashboards are waiting to be unlocked.",
+      "Advanced features with more AI power. Includes all Starter features, 10 pooled general AI runs, advanced features, and priority support.",
     type: "PRO",
     prices: [
       {
         id: `price_monthly_${EProductSubscriptionEnum.PRO}`,
-        unit_amount: 800,
+        unit_amount: 1400, // $14.00 per month
         recurring: "month",
         currency: "usd",
-        workspace_amount: 800,
-        product: EProductSubscriptionEnum.PRO,
-      },
-      {
-        id: `price_yearly_${EProductSubscriptionEnum.PRO}`,
-        unit_amount: 7200,
-        recurring: "year",
-        currency: "usd",
-        workspace_amount: 7200,
+        workspace_amount: 1400,
         product: EProductSubscriptionEnum.PRO,
       },
     ],
     payment_quantity: 1,
     is_active: true,
   },
-  [EProductSubscriptionEnum.BUSINESS]: {
-    id: EProductSubscriptionEnum.BUSINESS,
-    name: "Plane Business",
+  [EProductSubscriptionEnum.STARTER]: {
+    id: EProductSubscriptionEnum.STARTER,
+    name: "Starter Plan",
     description:
-      "The earliest packaging of Business at $10 a seat a month billed annually, $12 a seat a month billed monthly for Plane Cloud",
-    type: "BUSINESS",
+      "Core PM features with AI assistance. Includes 5 pooled general AI runs, unlimited users, and basic support.",
+    type: "STARTER",
     prices: [
       {
-        id: `price_yearly_${EProductSubscriptionEnum.BUSINESS}`,
-        unit_amount: 15600,
-        recurring: "year",
-        currency: "usd",
-        workspace_amount: 15600,
-        product: EProductSubscriptionEnum.BUSINESS,
-      },
-      {
-        id: `price_monthly_${EProductSubscriptionEnum.BUSINESS}`,
-        unit_amount: 1500,
+        id: `price_monthly_${EProductSubscriptionEnum.STARTER}`,
+        unit_amount: 800, // $8.00 per month
         recurring: "month",
         currency: "usd",
-        workspace_amount: 1500,
-        product: EProductSubscriptionEnum.BUSINESS,
+        workspace_amount: 800,
+        product: EProductSubscriptionEnum.STARTER,
       },
     ],
     payment_quantity: 1,
@@ -121,17 +104,13 @@ export const SUBSCRIPTION_REDIRECTION_URLS: Record<EProductSubscriptionEnum, Rec
     month: TALK_TO_SALES_URL,
     year: TALK_TO_SALES_URL,
   },
-  [EProductSubscriptionEnum.ONE]: {
-    month: TALK_TO_SALES_URL,
-    year: TALK_TO_SALES_URL,
+  [EProductSubscriptionEnum.STARTER]: {
+    month: "/settings/billing?plan=starter&frequency=month", // Will be handled by direct Stripe checkout
+    year: "/settings/billing?plan=starter&frequency=year", // Will be handled by direct Stripe checkout
   },
   [EProductSubscriptionEnum.PRO]: {
-    month: "https://app.plane.so/upgrade/pro/self-hosted?plan=month",
-    year: "https://app.plane.so/upgrade/pro/self-hosted?plan=year",
-  },
-  [EProductSubscriptionEnum.BUSINESS]: {
-    month: "https://app.plane.so/upgrade/business/self-hosted?plan=month",
-    year: "https://app.plane.so/upgrade/business/self-hosted?plan=year",
+    month: "/settings/billing?plan=pro&frequency=month", // Will be handled by direct Stripe checkout
+    year: "/settings/billing?plan=pro&frequency=year", // Will be handled by direct Stripe checkout
   },
   [EProductSubscriptionEnum.ENTERPRISE]: {
     month: TALK_TO_SALES_URL,
@@ -145,8 +124,7 @@ export const SUBSCRIPTION_REDIRECTION_URLS: Record<EProductSubscriptionEnum, Rec
  */
 export const SUBSCRIPTION_WEBPAGE_URLS: Record<EProductSubscriptionEnum, string> = {
   [EProductSubscriptionEnum.FREE]: TALK_TO_SALES_URL,
-  [EProductSubscriptionEnum.ONE]: TALK_TO_SALES_URL,
+  [EProductSubscriptionEnum.STARTER]: "https://plane.so/starter",
   [EProductSubscriptionEnum.PRO]: "https://plane.so/pro",
-  [EProductSubscriptionEnum.BUSINESS]: "https://plane.so/business",
-  [EProductSubscriptionEnum.ENTERPRISE]: "https://plane.so/business",
+  [EProductSubscriptionEnum.ENTERPRISE]: "https://plane.so/enterprise",
 };

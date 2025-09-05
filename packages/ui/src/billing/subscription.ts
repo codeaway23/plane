@@ -7,17 +7,13 @@ export const getSubscriptionTextColor = (
   shade: "200" | "400" = "200"
 ): string => {
   const subscriptionColors = {
-    [EProductSubscriptionEnum.ONE]: {
-      "200": "text-custom-subscription-one-200",
-      "400": "text-custom-subscription-one-400",
+    [EProductSubscriptionEnum.STARTER]: {
+      "200": "text-custom-subscription-starter-200",
+      "400": "text-custom-subscription-starter-400",
     },
     [EProductSubscriptionEnum.PRO]: {
       "200": "text-custom-subscription-pro-200",
       "400": "text-custom-subscription-pro-400",
-    },
-    [EProductSubscriptionEnum.BUSINESS]: {
-      "200": "text-custom-subscription-business-200",
-      "400": "text-custom-subscription-business-400",
     },
     [EProductSubscriptionEnum.ENTERPRISE]: {
       "200": "text-custom-subscription-enterprise-200",
@@ -37,23 +33,17 @@ export const getSubscriptionBackgroundColor = (
   shade: "50" | "100" | "200" | "400" = "100"
 ): string => {
   const subscriptionColors = {
-    [EProductSubscriptionEnum.ONE]: {
-      "50": "bg-custom-subscription-one-200/10",
-      "100": "bg-custom-subscription-one-200/20",
-      "200": "bg-custom-subscription-one-200",
-      "400": "bg-custom-subscription-one-400",
+    [EProductSubscriptionEnum.STARTER]: {
+      "50": "bg-custom-subscription-starter-200/10",
+      "100": "bg-custom-subscription-starter-200/20",
+      "200": "bg-custom-subscription-starter-200",
+      "400": "bg-custom-subscription-starter-400",
     },
     [EProductSubscriptionEnum.PRO]: {
       "50": "bg-custom-subscription-pro-200/10",
       "100": "bg-custom-subscription-pro-200/20",
       "200": "bg-custom-subscription-pro-200",
       "400": "bg-custom-subscription-pro-400",
-    },
-    [EProductSubscriptionEnum.BUSINESS]: {
-      "50": "bg-custom-subscription-business-200/10",
-      "100": "bg-custom-subscription-business-200/20",
-      "200": "bg-custom-subscription-business-200",
-      "400": "bg-custom-subscription-business-400",
     },
     [EProductSubscriptionEnum.ENTERPRISE]: {
       "50": "bg-custom-subscription-enterprise-200/10",
@@ -77,17 +67,13 @@ export const getSubscriptionBorderColor = (
   shade: "200" | "400" = "200"
 ): string => {
   const subscriptionColors = {
-    [EProductSubscriptionEnum.ONE]: {
-      "200": "border-custom-subscription-one-200",
-      "400": "border-custom-subscription-one-400",
+    [EProductSubscriptionEnum.STARTER]: {
+      "200": "border-custom-subscription-starter-200",
+      "400": "border-custom-subscription-starter-400",
     },
     [EProductSubscriptionEnum.PRO]: {
       "200": "border-custom-subscription-pro-200",
       "400": "border-custom-subscription-pro-400",
-    },
-    [EProductSubscriptionEnum.BUSINESS]: {
-      "200": "border-custom-subscription-business-200",
-      "400": "border-custom-subscription-business-400",
     },
     [EProductSubscriptionEnum.ENTERPRISE]: {
       "200": "border-custom-subscription-enterprise-200",
@@ -120,21 +106,15 @@ export const getUpgradeButtonStyle = (
         getSubscriptionBorderColor(planVariant, "200"),
         COMMON_CLASSNAME
       );
-    case EProductSubscriptionEnum.BUSINESS:
-      return cn(
-        "text-custom-subscription-business-200 from-custom-subscription-business-200 to-custom-subscription-business-400",
-        getSubscriptionBorderColor(planVariant, "200"),
-        COMMON_CLASSNAME
-      );
     case EProductSubscriptionEnum.PRO:
       return cn(
         "text-custom-subscription-pro-200 from-custom-subscription-pro-200 to-custom-subscription-pro-400",
         getSubscriptionBorderColor(planVariant, "200"),
         COMMON_CLASSNAME
       );
-    case EProductSubscriptionEnum.ONE:
+    case EProductSubscriptionEnum.STARTER:
       return cn(
-        "text-custom-subscription-one-200 from-custom-subscription-one-200 to-custom-subscription-one-400",
+        "text-custom-subscription-starter-200 from-custom-subscription-starter-200 to-custom-subscription-starter-400",
         getSubscriptionBorderColor(planVariant, "200"),
         COMMON_CLASSNAME
       );
@@ -154,12 +134,10 @@ export const getUpgradeCardVariantStyle = (planVariant: EProductSubscriptionEnum
   switch (planVariant) {
     case EProductSubscriptionEnum.ENTERPRISE:
       return cn("from-custom-subscription-enterprise-200/[0.14] to-transparent", COMMON_CLASSNAME);
-    case EProductSubscriptionEnum.BUSINESS:
-      return cn("from-custom-subscription-business-200/[0.14] to-transparent", COMMON_CLASSNAME);
     case EProductSubscriptionEnum.PRO:
       return cn("from-custom-subscription-pro-200/[0.14] to-transparent", COMMON_CLASSNAME);
-    case EProductSubscriptionEnum.ONE:
-      return cn("from-custom-subscription-one-200/[0.14] to-transparent", COMMON_CLASSNAME);
+    case EProductSubscriptionEnum.STARTER:
+      return cn("from-custom-subscription-starter-200/[0.14] to-transparent", COMMON_CLASSNAME);
     case EProductSubscriptionEnum.FREE:
     default:
       return cn("from-custom-subscription-free-200/[0.14] to-transparent", COMMON_CLASSNAME);
@@ -172,12 +150,10 @@ export const getSuccessModalVariantStyle = (planVariant: EProductSubscriptionEnu
   switch (planVariant) {
     case EProductSubscriptionEnum.ENTERPRISE:
       return cn("from-custom-subscription-enterprise-200/[0.14] to-transparent", COMMON_CLASSNAME);
-    case EProductSubscriptionEnum.BUSINESS:
-      return cn("from-custom-subscription-business-200/[0.14] to-transparent", COMMON_CLASSNAME);
     case EProductSubscriptionEnum.PRO:
       return cn("from-custom-subscription-pro-200/[0.14] to-transparent", COMMON_CLASSNAME);
-    case EProductSubscriptionEnum.ONE:
-      return cn("from-custom-subscription-one-200/[0.14] to-transparent", COMMON_CLASSNAME);
+    case EProductSubscriptionEnum.STARTER:
+      return cn("from-custom-subscription-starter-200/[0.14] to-transparent", COMMON_CLASSNAME);
     case EProductSubscriptionEnum.FREE:
     default:
       return cn("from-custom-subscription-free-200/[0.14] to-transparent", COMMON_CLASSNAME);
@@ -190,12 +166,10 @@ export const getBillingAndPlansCardVariantStyle = (planVariant: EProductSubscrip
   switch (planVariant) {
     case EProductSubscriptionEnum.ENTERPRISE:
       return cn("from-custom-subscription-enterprise-200/[0.14] to-transparent", COMMON_CLASSNAME);
-    case EProductSubscriptionEnum.BUSINESS:
-      return cn("from-custom-subscription-business-200/[0.14] to-transparent", COMMON_CLASSNAME);
     case EProductSubscriptionEnum.PRO:
       return cn("from-custom-subscription-pro-200/[0.14] to-transparent", COMMON_CLASSNAME);
-    case EProductSubscriptionEnum.ONE:
-      return cn("from-custom-subscription-one-200/[0.14] to-transparent", COMMON_CLASSNAME);
+    case EProductSubscriptionEnum.STARTER:
+      return cn("from-custom-subscription-starter-200/[0.14] to-transparent", COMMON_CLASSNAME);
     case EProductSubscriptionEnum.FREE:
     default:
       return cn("from-custom-subscription-free-200/[0.14] to-transparent", COMMON_CLASSNAME);
