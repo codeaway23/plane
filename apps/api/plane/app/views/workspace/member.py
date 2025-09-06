@@ -2,6 +2,7 @@
 from django.db.models import Count, Q, OuterRef, Subquery, IntegerField
 from django.utils import timezone
 from django.db.models.functions import Coalesce
+import logging
 
 # Third party modules
 from rest_framework import status
@@ -21,6 +22,8 @@ from plane.db.models import Project, ProjectMember, WorkspaceMember, DraftIssue
 from plane.utils.cache import invalidate_cache
 
 from .. import BaseViewSet
+
+logger = logging.getLogger(__name__)
 
 
 class WorkSpaceMemberViewSet(BaseViewSet):
@@ -138,6 +141,24 @@ class WorkSpaceMemberViewSet(BaseViewSet):
 
         workspace_member.is_active = False
         workspace_member.save()
+        
+        # Update Stripe subscription quantity (-1) when user is removed
+        try:
+            from plane.api.services.stripe_service import StripeService
+            stripe_service = StripeService()
+            
+            # Check if workspace can manage users (has active subscription)
+            if stripe_service.can_manage_users(slug):
+                # Update subscription quantity (-1)
+                quantity_result = stripe_service.update_subscription_quantity(slug, -1)
+                if not quantity_result.get('success'):
+                    logger.warning(f"Failed to update subscription quantity for workspace {slug}: {quantity_result.get('error')}")
+            else:
+                logger.warning(f"Workspace {slug} does not have active subscription for user management")
+        except Exception as e:
+            logger.error(f"Error updating Stripe subscription quantity for workspace {slug}: {str(e)}")
+            # Don't fail the user removal if Stripe update fails
+        
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @invalidate_cache(
@@ -200,6 +221,24 @@ class WorkSpaceMemberViewSet(BaseViewSet):
         # # Deactivate the user
         workspace_member.is_active = False
         workspace_member.save()
+        
+        # Update Stripe subscription quantity (-1) when user leaves
+        try:
+            from plane.api.services.stripe_service import StripeService
+            stripe_service = StripeService()
+            
+            # Check if workspace can manage users (has active subscription)
+            if stripe_service.can_manage_users(slug):
+                # Update subscription quantity (-1)
+                quantity_result = stripe_service.update_subscription_quantity(slug, -1)
+                if not quantity_result.get('success'):
+                    logger.warning(f"Failed to update subscription quantity for workspace {slug}: {quantity_result.get('error')}")
+            else:
+                logger.warning(f"Workspace {slug} does not have active subscription for user management")
+        except Exception as e:
+            logger.error(f"Error updating Stripe subscription quantity for workspace {slug}: {str(e)}")
+            # Don't fail the user leaving if Stripe update fails
+        
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 

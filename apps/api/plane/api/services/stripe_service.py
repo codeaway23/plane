@@ -750,3 +750,181 @@ class StripeService:
         except Exception as e:
             logger.error(f"Error updating workspace subscription: {str(e)}")
             raise Exception(f"Failed to update workspace subscription: {str(e)}")
+    
+    def update_subscription_quantity(self, workspace_slug: str, quantity_change: int) -> Dict[str, Any]:
+        """
+        Update Stripe subscription quantity when users are added/removed
+        
+        Args:
+            workspace_slug: Workspace slug
+            quantity_change: Change in quantity (+1 for add, -1 for remove)
+            
+        Returns:
+            Dictionary containing update results
+        """
+        try:
+            from plane.db.models import Workspace
+            
+            workspace = Workspace.objects.get(slug=workspace_slug)
+            
+            if not workspace.stripe_subscription_id:
+                logger.warning(f"No active subscription found for workspace {workspace_slug}")
+                return {'success': False, 'error': 'No active subscription'}
+            
+            # Get current subscription
+            subscription = stripe.Subscription.retrieve(workspace.stripe_subscription_id)
+            
+            if not subscription['items']['data']:
+                logger.error(f"No subscription items found for subscription {workspace.stripe_subscription_id}")
+                return {'success': False, 'error': 'No subscription items found'}
+            
+            # Get current quantity
+            current_quantity = subscription['items']['data'][0]['quantity']
+            new_quantity = max(1, current_quantity + quantity_change)  # Ensure minimum quantity of 1
+            
+            if new_quantity == current_quantity:
+                logger.info(f"Quantity unchanged for workspace {workspace_slug}: {current_quantity}")
+                return {'success': True, 'quantity': current_quantity, 'message': 'Quantity unchanged'}
+            
+            # Update subscription quantity
+            stripe.Subscription.modify(
+                workspace.stripe_subscription_id,
+                items=[{
+                    'id': subscription['items']['data'][0]['id'],
+                    'quantity': new_quantity,
+                }],
+                proration_behavior='create_prorations'
+            )
+            
+            logger.info(f"Updated subscription quantity for workspace {workspace_slug}: {current_quantity} -> {new_quantity}")
+            
+            return {
+                'success': True,
+                'old_quantity': current_quantity,
+                'new_quantity': new_quantity,
+                'change': quantity_change
+            }
+            
+        except Workspace.DoesNotExist:
+            logger.error(f"Workspace not found: {workspace_slug}")
+            return {'success': False, 'error': 'Workspace not found'}
+        except stripe.error.StripeError as e:
+            logger.error(f"Stripe error updating subscription quantity for workspace {workspace_slug}: {str(e)}")
+            return {'success': False, 'error': f'Stripe error: {str(e)}'}
+        except Exception as e:
+            logger.error(f"Unexpected error updating subscription quantity for workspace {workspace_slug}: {str(e)}")
+            return {'success': False, 'error': f'Unexpected error: {str(e)}'}
+    
+    def can_manage_users(self, workspace_slug: str) -> bool:
+        """
+        Check if workspace can manage users based on subscription plan
+        
+        Args:
+            workspace_slug: Workspace slug
+            
+        Returns:
+            Boolean indicating if workspace can manage users
+        """
+        try:
+            from plane.db.models import Workspace
+            
+            workspace = Workspace.objects.get(slug=workspace_slug)
+            
+            # Check if workspace has an active subscription
+            if not workspace.stripe_subscription_id:
+                return False
+            
+            # Get subscription status
+            subscription_data = self.get_subscription_status(workspace_slug)
+            
+            if not subscription_data or subscription_data.get('status') != 'active':
+                return False
+            
+            # Check if it's a paid plan (not free)
+            price_id = subscription_data.get('price_id', '')
+            if not price_id or 'free' in price_id.lower():
+                return False
+            
+            return True
+            
+        except Workspace.DoesNotExist:
+            logger.warning(f"Workspace not found: {workspace_slug}")
+            return False
+        except Exception as e:
+            logger.error(f"Error checking user management capability for workspace {workspace_slug}: {str(e)}")
+            return False
+    
+    def get_subscription_plan_type(self, workspace_slug: str) -> str:
+        """
+        Get the current subscription plan type for a workspace
+        
+        Args:
+            workspace_slug: Workspace slug
+            
+        Returns:
+            String indicating plan type ('free', 'starter', 'pro', 'enterprise')
+        """
+        try:
+            from plane.db.models import Workspace
+            
+            workspace = Workspace.objects.get(slug=workspace_slug)
+            
+            if not workspace.stripe_subscription_id:
+                return 'free'
+            
+            subscription_data = self.get_subscription_status(workspace_slug)
+            
+            if not subscription_data or subscription_data.get('status') != 'active':
+                return 'free'
+            
+            # Determine plan type based on price_id or product_id
+            price_id = subscription_data.get('price_id', '')
+            product_id = subscription_data.get('product_id', '')
+            
+            # This is a simplified mapping - you may need to adjust based on your actual Stripe price IDs
+            if 'starter' in price_id.lower() or 'starter' in product_id.lower():
+                return 'starter'
+            elif 'pro' in price_id.lower() or 'pro' in product_id.lower():
+                return 'pro'
+            elif 'enterprise' in price_id.lower() or 'enterprise' in product_id.lower():
+                return 'enterprise'
+            else:
+                return 'paid'  # Generic paid plan
+            
+        except Workspace.DoesNotExist:
+            logger.warning(f"Workspace not found: {workspace_slug}")
+            return 'free'
+        except Exception as e:
+            logger.error(f"Error getting subscription plan type for workspace {workspace_slug}: {str(e)}")
+            return 'free'
+    
+    def get_workspace_user_count(self, workspace_slug: str) -> int:
+        """
+        Get current active user count for a workspace
+        
+        Args:
+            workspace_slug: Workspace slug
+            
+        Returns:
+            Number of active users in the workspace
+        """
+        try:
+            from plane.db.models import Workspace, WorkspaceMember
+            
+            workspace = Workspace.objects.get(slug=workspace_slug)
+            
+            # Count active workspace members (excluding bots)
+            user_count = WorkspaceMember.objects.filter(
+                workspace=workspace,
+                is_active=True,
+                member__is_bot=False
+            ).count()
+            
+            return user_count
+            
+        except Workspace.DoesNotExist:
+            logger.warning(f"Workspace not found: {workspace_slug}")
+            return 0
+        except Exception as e:
+            logger.error(f"Error getting user count for workspace {workspace_slug}: {str(e)}")
+            return 0

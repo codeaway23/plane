@@ -1,5 +1,6 @@
 # Python imports
 from datetime import datetime
+import logging
 
 import jwt
 
@@ -28,6 +29,8 @@ from plane.utils.cache import invalidate_cache, invalidate_cache_directly
 from plane.utils.host import base_host
 from plane.utils.ip_address import get_client_ip
 from .. import BaseViewSet
+
+logger = logging.getLogger(__name__)
 
 
 class WorkspaceInvitationsViewset(BaseViewSet):
@@ -71,6 +74,21 @@ class WorkspaceInvitationsViewset(BaseViewSet):
                 {"error": "You cannot invite a user with higher role"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+        # Check if workspace has active subscription for user management
+        try:
+            from plane.api.services.stripe_service import StripeService
+            stripe_service = StripeService()
+            
+            if not stripe_service.can_manage_users(slug):
+                return Response(
+                    {"error": "Workspace needs an active subscription to manage users"},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+        except Exception as e:
+            logger.error(f"Error checking subscription for workspace {slug}: {str(e)}")
+            # Allow invitation creation if Stripe check fails (graceful degradation)
+            pass
 
         # Get the workspace object
         workspace = Workspace.objects.get(slug=slug)
@@ -189,17 +207,41 @@ class WorkspaceJoinEndpoint(BaseAPIView):
                     workspace_member = WorkspaceMember.objects.filter(
                         workspace=workspace_invite.workspace, member=user
                     ).first()
+                    is_new_member = False
+                    
                     if workspace_member is not None:
+                        # Reactivating existing member
+                        if not workspace_member.is_active:
+                            is_new_member = True
                         workspace_member.is_active = True
                         workspace_member.role = workspace_invite.role
                         workspace_member.save()
                     else:
-                        # Create a Workspace
+                        # Creating new member
+                        is_new_member = True
                         _ = WorkspaceMember.objects.create(
                             workspace=workspace_invite.workspace,
                             member=user,
                             role=workspace_invite.role,
                         )
+
+                    # Update Stripe subscription quantity if this is a new member
+                    if is_new_member:
+                        try:
+                            from plane.api.services.stripe_service import StripeService
+                            stripe_service = StripeService()
+                            
+                            # Check if workspace can manage users (has active subscription)
+                            if stripe_service.can_manage_users(slug):
+                                # Update subscription quantity (+1)
+                                quantity_result = stripe_service.update_subscription_quantity(slug, 1)
+                                if not quantity_result.get('success'):
+                                    logger.warning(f"Failed to update subscription quantity for workspace {slug}: {quantity_result.get('error')}")
+                            else:
+                                logger.warning(f"Workspace {slug} does not have active subscription for user management")
+                        except Exception as e:
+                            logger.error(f"Error updating Stripe subscription quantity for workspace {slug}: {str(e)}")
+                            # Don't fail the invitation acceptance if Stripe update fails
 
                     # Set the user last_workspace_id to the accepted workspace
                     user.last_workspace_id = workspace_invite.workspace.id
@@ -219,7 +261,14 @@ class WorkspaceJoinEndpoint(BaseAPIView):
                 )
 
                 return Response(
-                    {"message": "Workspace Invitation Accepted"},
+                    {
+                        "message": "Workspace Invitation Accepted",
+                        "workspace": {
+                            "id": workspace_invite.workspace.id,
+                            "slug": workspace_invite.workspace.slug,
+                            "name": workspace_invite.workspace.name,
+                        }
+                    },
                     status=status.HTTP_200_OK,
                 )
 
@@ -262,6 +311,9 @@ class UserWorkspaceInvitationsViewSet(BaseViewSet):
             pk__in=invitations, email=request.user.email
         ).order_by("-created_at")
 
+        # Track which workspaces are getting new members for Stripe quantity updates
+        workspaces_with_new_members = set()
+
         # If the user is already a member of workspace and was deactivated then activate the user
         for invitation in workspace_invitations:
             invalidate_cache_directly(
@@ -270,24 +322,62 @@ class UserWorkspaceInvitationsViewSet(BaseViewSet):
                 request=request,
                 multiple=True,
             )
+            
+            # Check if this is a new member (not already active)
+            existing_member = WorkspaceMember.objects.filter(
+                workspace_id=invitation.workspace_id, member=request.user, is_active=True
+            ).first()
+            
+            if not existing_member:
+                workspaces_with_new_members.add(invitation.workspace.slug)
+            
             # Update the WorkspaceMember for this specific invitation
             WorkspaceMember.objects.filter(
                 workspace_id=invitation.workspace_id, member=request.user
             ).update(is_active=True, role=invitation.role)
 
         # Bulk create the user for all the workspaces
-        WorkspaceMember.objects.bulk_create(
-            [
-                WorkspaceMember(
-                    workspace=invitation.workspace,
-                    member=request.user,
-                    role=invitation.role,
-                    created_by=request.user,
+        new_workspace_members = []
+        for invitation in workspace_invitations:
+            # Check if this is a completely new membership
+            existing_member = WorkspaceMember.objects.filter(
+                workspace_id=invitation.workspace_id, member=request.user
+            ).first()
+            
+            if not existing_member:
+                workspaces_with_new_members.add(invitation.workspace.slug)
+                new_workspace_members.append(
+                    WorkspaceMember(
+                        workspace=invitation.workspace,
+                        member=request.user,
+                        role=invitation.role,
+                        created_by=request.user,
+                    )
                 )
-                for invitation in workspace_invitations
-            ],
-            ignore_conflicts=True,
-        )
+
+        if new_workspace_members:
+            WorkspaceMember.objects.bulk_create(
+                new_workspace_members,
+                ignore_conflicts=True,
+            )
+
+        # Update Stripe subscription quantities for workspaces with new members
+        for workspace_slug in workspaces_with_new_members:
+            try:
+                from plane.api.services.stripe_service import StripeService
+                stripe_service = StripeService()
+                
+                # Check if workspace can manage users (has active subscription)
+                if stripe_service.can_manage_users(workspace_slug):
+                    # Update subscription quantity (+1)
+                    quantity_result = stripe_service.update_subscription_quantity(workspace_slug, 1)
+                    if not quantity_result.get('success'):
+                        logger.warning(f"Failed to update subscription quantity for workspace {workspace_slug}: {quantity_result.get('error')}")
+                else:
+                    logger.warning(f"Workspace {workspace_slug} does not have active subscription for user management")
+            except Exception as e:
+                logger.error(f"Error updating Stripe subscription quantity for workspace {workspace_slug}: {str(e)}")
+                # Don't fail the invitation acceptance if Stripe update fails
 
         # Delete joined workspace invites
         workspace_invitations.delete()
