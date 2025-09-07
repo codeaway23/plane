@@ -137,11 +137,15 @@ export const ComprehensiveOverview: FC<ComprehensiveOverviewProps> = observer(({
   const getCurrentSubscriptionType = (): EProductSubscriptionEnum => {
     if (!subscriptionData?.price_id) return EProductSubscriptionEnum.FREE;
 
-    const priceIdMap: Record<string, EProductSubscriptionEnum> = {
-      price_1S3sXzEPoCJr6b2KycIoGsqy: EProductSubscriptionEnum.STARTER,
-      price_1S3sgqEPoCJr6b2K97l2hJU7: EProductSubscriptionEnum.PRO,
-    };
+    // Use environment variables for Stripe price IDs
+    const STARTER_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_STARTER_PRICE_ID;
+    const PRO_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID;
 
+    const priceIdMap: Record<string, EProductSubscriptionEnum> = {
+      [STARTER_PRICE_ID ?? ""]: EProductSubscriptionEnum.STARTER,
+      [PRO_PRICE_ID ?? ""]: EProductSubscriptionEnum.PRO,
+      // Note: AI Pack subscriptions are handled separately and won't appear in main subscription data
+    };
     return priceIdMap[subscriptionData.price_id] || EProductSubscriptionEnum.FREE;
   };
 
@@ -274,31 +278,6 @@ export const ComprehensiveOverview: FC<ComprehensiveOverviewProps> = observer(({
             </div>
           </div>
         </div>
-
-        {subscriptionData && (
-          <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex items-center gap-3">
-              <Calendar className="h-5 w-5 text-custom-text-400" />
-              <div>
-                <p className="text-sm text-custom-text-400">Current Period</p>
-                <p className="text-sm font-medium text-custom-text-100">
-                  {formatDate(subscriptionData.current_period_start)} -{" "}
-                  {formatDate(subscriptionData.current_period_end)}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <CreditCard className="h-5 w-5 text-custom-text-400" />
-              <div>
-                <p className="text-sm text-custom-text-400">Next Billing Date</p>
-                <p className="text-sm font-medium text-custom-text-100">
-                  {formatDate(subscriptionData.current_period_end)}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* AI Pack Subscription */}
@@ -325,31 +304,6 @@ export const ComprehensiveOverview: FC<ComprehensiveOverviewProps> = observer(({
               </div>
             </div>
           </div>
-
-          {aiPackData.subscription && (
-            <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="flex items-center gap-3">
-                <Calendar className="h-5 w-5 text-custom-text-400" />
-                <div>
-                  <p className="text-sm text-custom-text-400">Current Period</p>
-                  <p className="text-sm font-medium text-custom-text-100">
-                    {formatDate(aiPackData.subscription.current_period_start)} -{" "}
-                    {formatDate(aiPackData.subscription.current_period_end)}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <CreditCard className="h-5 w-5 text-custom-text-400" />
-                <div>
-                  <p className="text-sm text-custom-text-400">Next Billing Date</p>
-                  <p className="text-sm font-medium text-custom-text-100">
-                    {formatDate(aiPackData.subscription.current_period_end)}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       )}
 
@@ -380,31 +334,6 @@ export const ComprehensiveOverview: FC<ComprehensiveOverviewProps> = observer(({
                   </div>
                 </div>
               </div>
-
-              {aiUsageData.general_run.subscription && (
-                <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="flex items-center gap-3">
-                    <Calendar className="h-5 w-5 text-custom-text-400" />
-                    <div>
-                      <p className="text-sm text-custom-text-400">Current Period</p>
-                      <p className="text-sm font-medium text-custom-text-100">
-                        {formatDate(aiUsageData.general_run.subscription.current_period_start)} -{" "}
-                        {formatDate(aiUsageData.general_run.subscription.current_period_end)}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <CreditCard className="h-5 w-5 text-custom-text-400" />
-                    <div>
-                      <p className="text-sm text-custom-text-400">Next Billing Date</p>
-                      <p className="text-sm font-medium text-custom-text-100">
-                        {formatDate(aiUsageData.general_run.subscription.current_period_end)}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
           )}
 
@@ -432,31 +361,6 @@ export const ComprehensiveOverview: FC<ComprehensiveOverviewProps> = observer(({
                   </div>
                 </div>
               </div>
-
-              {aiUsageData.code_run.subscription && (
-                <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="flex items-center gap-3">
-                    <Calendar className="h-5 w-5 text-custom-text-400" />
-                    <div>
-                      <p className="text-sm text-custom-text-400">Current Period</p>
-                      <p className="text-sm font-medium text-custom-text-100">
-                        {formatDate(aiUsageData.code_run.subscription.current_period_start)} -{" "}
-                        {formatDate(aiUsageData.code_run.subscription.current_period_end)}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <CreditCard className="h-5 w-5 text-custom-text-400" />
-                    <div>
-                      <p className="text-sm text-custom-text-400">Next Billing Date</p>
-                      <p className="text-sm font-medium text-custom-text-100">
-                        {formatDate(aiUsageData.code_run.subscription.current_period_end)}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
           )}
         </div>

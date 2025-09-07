@@ -2,7 +2,7 @@ import { FC, useState, useEffect } from "react";
 import { observer } from "mobx-react";
 // plane imports
 import { Button, Loader } from "@plane/ui";
-import { Brain, Zap, Code, CheckCircle, XCircle, AlertCircle } from "lucide-react";
+import { Brain, Zap, Code, CheckCircle, XCircle, AlertCircle, AlertTriangle } from "lucide-react";
 // hooks
 import { useWorkspace } from "@/hooks/store/use-workspace";
 // services
@@ -58,6 +58,8 @@ export const AIUsageManagement: FC = observer(() => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
+  const [showCancelDialog, setShowCancelDialog] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   useEffect(() => {
     if (currentWorkspace) {
@@ -105,7 +107,11 @@ export const AIUsageManagement: FC = observer(() => {
     }
   };
 
-  const handleCancel = async (planType: string) => {
+  const handleCancel = (planType: string) => {
+    setShowCancelDialog(planType);
+  };
+
+  const confirmCancel = async (planType: string) => {
     if (!currentWorkspace) return;
 
     setActionLoading((prev) => ({ ...prev, [`cancel_${planType}`]: true }));
@@ -113,6 +119,10 @@ export const AIUsageManagement: FC = observer(() => {
     try {
       await AIUsageService.cancelSubscription(currentWorkspace.slug, planType);
       await fetchData(); // Refresh data
+
+      setSuccess(`${plans[planType]?.name || planType} subscription cancelled immediately. You can restart anytime.`);
+      setTimeout(() => setSuccess(null), 5000);
+      setShowCancelDialog(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to cancel subscription");
     } finally {
@@ -184,6 +194,12 @@ export const AIUsageManagement: FC = observer(() => {
       {error && (
         <div className="p-4 bg-red-100 border border-red-200 rounded-lg">
           <p className="text-sm text-red-600">{error}</p>
+        </div>
+      )}
+
+      {success && (
+        <div className="p-4 bg-green-100 border border-green-200 rounded-lg">
+          <p className="text-sm text-green-600">{success}</p>
         </div>
       )}
 
@@ -304,6 +320,55 @@ export const AIUsageManagement: FC = observer(() => {
           </div>
         </div>
       </div>
+
+      {/* Cancel Subscription Confirmation Dialog */}
+      {showCancelDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-custom-background-100 border border-custom-border-200 rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex-shrink-0">
+                <AlertTriangle className="h-6 w-6 text-orange-500" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-custom-text-100">
+                  Cancel {plans[showCancelDialog]?.name || showCancelDialog} Subscription
+                </h3>
+                <p className="text-sm text-custom-text-300">
+                  Are you sure you want to cancel your {plans[showCancelDialog]?.name || showCancelDialog} subscription?
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mb-4">
+              <p className="text-sm text-orange-800">
+                <strong>Important:</strong> Your {plans[showCancelDialog]?.name || showCancelDialog} subscription will
+                be cancelled immediately. You'll lose access to this AI feature right away, but you can restart your
+                subscription anytime.
+              </p>
+            </div>
+
+            <div className="flex gap-3 justify-end">
+              <Button
+                variant="outline-primary"
+                size="sm"
+                onClick={() => setShowCancelDialog(null)}
+                disabled={actionLoading[`cancel_${showCancelDialog}`]}
+              >
+                Keep Subscription
+              </Button>
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={() => confirmCancel(showCancelDialog)}
+                disabled={actionLoading[`cancel_${showCancelDialog}`]}
+                loading={actionLoading[`cancel_${showCancelDialog}`]}
+              >
+                Yes, Cancel Subscription
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 });

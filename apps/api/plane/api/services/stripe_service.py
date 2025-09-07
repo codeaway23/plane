@@ -503,7 +503,7 @@ class StripeService:
             # Get current subscription
             subscription = stripe.Subscription.retrieve(subscription_id)
             
-            # Update subscription with new price
+            # Update subscription with new prisubscriptionData.price_id price_1S4D5TEPoCJr6b2KZa4YIXXvce
             stripe.Subscription.modify(
                 subscription_id,
                 items=[{
@@ -537,7 +537,7 @@ class StripeService:
             logger.error(f"Stripe API connection error: {str(e)}")
             raise Exception("Unable to connect to Stripe. Please try again later.")
         except stripe.error.StripeError as e:
-            logger.error(f"Stripe error updating subscription {subscription_id}: {str(e)}")
+            logger.error(f"Stripe error updatisubscriptionData.price_id price_1S4D5TEPoCJr6b2KZa4YIXXvng subscription {subscription_id}: {str(e)}")
             raise Exception(f"Stripe error: {str(e)}")
         except Exception as e:
             logger.error(f"Unexpected error updating subscription {subscription_id}: {str(e)}")
@@ -562,7 +562,7 @@ class StripeService:
             subscriptions = stripe.Subscription.list(
                 customer=customer_id,
                 status='active',
-                limit=1
+                limit=100
             )
             
             if not subscriptions.data:
@@ -571,7 +571,29 @@ class StripeService:
                     'has_active_subscription': False
                 }
             
-            subscription = subscriptions.data[0]
+            # Fetch starter/pro price IDs from Django settings
+            from django.conf import settings
+            MATCH_PRICE_IDS = {
+                getattr(settings, "STRIPE_STARTER_PRICE_ID", None),
+                getattr(settings, "STRIPE_PRO_PRICE_ID", None),
+            }
+            MATCH_PRICE_IDS = {pid for pid in MATCH_PRICE_IDS if pid}
+
+            subscription = None
+            for sub in subscriptions.data:
+                # Try to get price_id from the subscription items or plan
+                items = sub.get('items', {}).get('data', [])
+                if items and 'price' in items[0]:
+                    price_id = items[0]['price'].get('id')
+                else:
+                    price_id = sub.get('plan', {}).get('id')
+                if price_id in MATCH_PRICE_IDS:
+                    subscription = sub
+                    break
+
+            if not subscription:
+                # If no matching subscription found, return the first one as fallback
+                subscription = subscriptions.data[0]
             
             # Get subscription details from items
             items = subscription.get('items', {}).get('data', [])

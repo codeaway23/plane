@@ -4,7 +4,7 @@ import { observer } from "mobx-react";
 import { EProductSubscriptionEnum } from "@plane/types";
 import { Button, Loader } from "@plane/ui";
 import { getSubscriptionName } from "@plane/utils";
-import { ArrowUp, ArrowDown, Check, X } from "lucide-react";
+import { ArrowUp, ArrowDown, Check, X, AlertTriangle } from "lucide-react";
 // components
 import { SettingsHeading } from "@/components/settings/heading";
 // services
@@ -79,6 +79,10 @@ export const PlanManagement: FC<PlanManagementProps> = observer(
     const { isAuthenticated } = useUser();
     const [isLoading, setIsLoading] = useState<EProductSubscriptionEnum | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [success, setSuccess] = useState<string | null>(null);
+    const [showCancelDialog, setShowCancelDialog] = useState(false);
+    const [isCanceling, setIsCanceling] = useState(false);
+    const [isRestarting, setIsRestarting] = useState(false);
 
     const handlePlanChange = async (targetPlan: PlanOption) => {
       if (!currentWorkspace || !isAuthenticated) return;
@@ -141,17 +145,155 @@ export const PlanManagement: FC<PlanManagementProps> = observer(
       }
     };
 
+    const handleCancelSubscription = async () => {
+      if (!currentWorkspace || !subscriptionData?.id) return;
+
+      setIsCanceling(true);
+      setError(null);
+
+      try {
+        const stripeService = new StripeService();
+
+        console.log(`Canceling subscription ${subscriptionData.id}`);
+
+        const canceledSubscription = await stripeService.cancelSubscription(currentWorkspace.slug, subscriptionData.id);
+
+        console.log("Subscription canceled successfully:", canceledSubscription);
+
+        // Show success message
+        setError(null);
+        setSuccess(
+          "Subscription cancelled immediately. You've been downgraded to the Free plan. You can restart anytime."
+        );
+
+        // Clear success message after 5 seconds
+        setTimeout(() => setSuccess(null), 5000);
+
+        // Refresh the subscription data to show the updated status
+        if (onPlanChange) {
+          onPlanChange();
+        }
+
+        setShowCancelDialog(false);
+      } catch (err) {
+        setError(`Failed to cancel subscription. Please try again.`);
+        console.error("Error canceling subscription:", err);
+      } finally {
+        setIsCanceling(false);
+      }
+    };
+
+    const handleRestartSubscription = async () => {
+      if (!currentWorkspace || !subscriptionData?.id) return;
+
+      setIsRestarting(true);
+      setError(null);
+
+      try {
+        const stripeService = new StripeService();
+
+        console.log(`Restarting subscription ${subscriptionData.id}`);
+
+        const restartedSubscription = await stripeService.restartSubscription(
+          currentWorkspace.slug,
+          subscriptionData.id
+        );
+
+        console.log("Subscription restarted successfully:", restartedSubscription);
+
+        // Show success message
+        setError(null);
+        setSuccess("Subscription restarted successfully. You now have access to premium features again.");
+
+        // Clear success message after 5 seconds
+        setTimeout(() => setSuccess(null), 5000);
+
+        // Refresh the subscription data to show the updated status
+        if (onPlanChange) {
+          onPlanChange();
+        }
+      } catch (err) {
+        setError(`Failed to restart subscription. Please try again.`);
+        console.error("Error restarting subscription:", err);
+      } finally {
+        setIsRestarting(false);
+      }
+    };
+
     const getActionButton = (plan: PlanOption) => {
       const isCurrent = plan.type === currentSubscriptionType;
       const isPlanLoading = isLoading === plan.type;
+      const isSubscriptionCancelled = subscriptionData?.cancel_at_period_end === true;
+      const isPaidPlan = plan.type === EProductSubscriptionEnum.STARTER || plan.type === EProductSubscriptionEnum.PRO;
 
       if (isCurrent) {
-        return (
-          <Button variant="outline-primary" size="sm" disabled className="w-full">
-            <Check className="h-4 w-4 mr-2" />
-            Current Plan
-          </Button>
-        );
+        // Show cancel button for paid plans, current plan indicator for free
+        if (plan.type === EProductSubscriptionEnum.FREE) {
+          return (
+            <Button variant="outline-primary" size="sm" disabled className="w-full">
+              <Check className="h-4 w-4 mr-2" />
+              Current Plan
+            </Button>
+          );
+        } else if (isSubscriptionCancelled && isPaidPlan) {
+          // Show restart button for cancelled paid subscriptions
+          return (
+            <div className="space-y-2">
+              <Button variant="outline-primary" size="sm" disabled className="w-full">
+                <X className="h-4 w-4 mr-2" />
+                Cancelled (Immediate)
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleRestartSubscription}
+                className="w-full"
+                disabled={isRestarting}
+              >
+                {isRestarting ? (
+                  <div className="flex items-center gap-2">
+                    <Loader.Item height="1rem" width="1rem" />
+                    Restarting...
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <Check className="h-4 w-4" />
+                    Restart Subscription
+                  </div>
+                )}
+              </Button>
+            </div>
+          );
+        } else {
+          // Show cancel button for active paid subscriptions
+          return (
+            <div className="space-y-2">
+              <Button variant="outline-primary" size="sm" disabled className="w-full">
+                <Check className="h-4 w-4 mr-2" />
+                Current Plan
+              </Button>
+              <Button
+                variant="outline-danger"
+                size="sm"
+                onClick={() => setShowCancelDialog(true)}
+                className="w-full"
+                disabled={isCanceling}
+              >
+                {isCanceling ? (
+                  <div className="flex items-center gap-2">
+                    <Loader.Item height="1rem" width="1rem" />
+                    Canceling...
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <X className="h-4 w-4" />
+                    Cancel Subscription
+                  </div>
+                )}
+              </Button>
+            </div>
+          );
+        }
       }
 
       if (plan.type === EProductSubscriptionEnum.ENTERPRISE) {
@@ -218,6 +360,12 @@ export const PlanManagement: FC<PlanManagementProps> = observer(
           </div>
         )}
 
+        {success && (
+          <div className="p-3 bg-green-100 border border-green-200 rounded-lg">
+            <p className="text-sm text-green-600">{success}</p>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {PLAN_OPTIONS.map((plan) => (
             <div
@@ -272,10 +420,58 @@ export const PlanManagement: FC<PlanManagementProps> = observer(
             <li>• Plan changes go through secure Stripe checkout</li>
             <li>• You'll be charged or credited prorated amounts</li>
             <li>• Previous subscriptions are automatically cancelled</li>
+            <li>• Cancellation happens immediately (not at period end)</li>
+            <li>• You can restart cancelled subscriptions anytime</li>
             <li>• Only one active subscription per workspace is allowed</li>
             <li>• Contact support if you need assistance</li>
           </ul>
         </div>
+
+        {/* Cancel Subscription Confirmation Dialog */}
+        {showCancelDialog && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-custom-background-100 border border-custom-border-200 rounded-lg p-6 max-w-md w-full mx-4">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex-shrink-0">
+                  <AlertTriangle className="h-6 w-6 text-orange-500" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-custom-text-100">Cancel Subscription</h3>
+                  <p className="text-sm text-custom-text-300">Are you sure you want to cancel your subscription?</p>
+                </div>
+              </div>
+
+              <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mb-4">
+                <p className="text-sm text-orange-800">
+                  <strong>Important:</strong> Your subscription will be cancelled immediately and you'll be downgraded
+                  to the Free plan. You'll lose access to premium features right away, but you can restart your
+                  subscription anytime.
+                </p>
+              </div>
+
+              <div className="flex gap-3 justify-end">
+                <Button
+                  variant="outline-primary"
+                  size="sm"
+                  onClick={() => setShowCancelDialog(false)}
+                  disabled={isCanceling}
+                >
+                  Keep Subscription
+                </Button>
+                <Button variant="danger" size="sm" onClick={handleCancelSubscription} disabled={isCanceling}>
+                  {isCanceling ? (
+                    <div className="flex items-center gap-2">
+                      <Loader.Item height="1rem" width="1rem" />
+                      Canceling...
+                    </div>
+                  ) : (
+                    "Yes, Cancel Subscription"
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }

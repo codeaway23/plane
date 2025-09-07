@@ -167,12 +167,15 @@ export const BillingDashboard: FC = observer(() => {
   const getCurrentSubscriptionType = (): EProductSubscriptionEnum => {
     if (!subscriptionData?.price_id) return EProductSubscriptionEnum.FREE;
 
+    // Use environment variables for Stripe price IDs
+    const STARTER_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_STARTER_PRICE_ID;
+    const PRO_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID;
+
     const priceIdMap: Record<string, EProductSubscriptionEnum> = {
-      price_1S3sXzEPoCJr6b2KycIoGsqy: EProductSubscriptionEnum.STARTER,
-      price_1S3sgqEPoCJr6b2K97l2hJU7: EProductSubscriptionEnum.PRO,
+      [STARTER_PRICE_ID ?? ""]: EProductSubscriptionEnum.STARTER,
+      [PRO_PRICE_ID ?? ""]: EProductSubscriptionEnum.PRO,
       // Note: AI Pack subscriptions are handled separately and won't appear in main subscription data
     };
-
     return priceIdMap[subscriptionData.price_id] || EProductSubscriptionEnum.FREE;
   };
 
