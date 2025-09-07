@@ -8,6 +8,8 @@ export const DEFAULT_PRODUCT_BILLING_FREQUENCY: TProductBillingFrequency = {
   [EProductSubscriptionEnum.STARTER]: "month",
   [EProductSubscriptionEnum.PRO]: "month",
   [EProductSubscriptionEnum.ENTERPRISE]: "month",
+  [EProductSubscriptionEnum.CORE_AI_PACK]: "month",
+  [EProductSubscriptionEnum.SCALE_AI_PACK]: "month",
 };
 
 /**
@@ -17,6 +19,8 @@ export const SUBSCRIPTION_WITH_BILLING_FREQUENCY = [
   EProductSubscriptionEnum.STARTER,
   EProductSubscriptionEnum.PRO,
   EProductSubscriptionEnum.ENTERPRISE,
+  EProductSubscriptionEnum.CORE_AI_PACK,
+  EProductSubscriptionEnum.SCALE_AI_PACK,
 ];
 
 /**
@@ -88,6 +92,42 @@ export const PLANE_COMMUNITY_PRODUCTS: Record<string, IPaymentProduct> = {
     payment_quantity: 1,
     is_active: false,
   },
+  [EProductSubscriptionEnum.CORE_AI_PACK]: {
+    id: EProductSubscriptionEnum.CORE_AI_PACK,
+    name: "Core AI Pack",
+    description: "100 general runs or 20 code runs per month. Perfect for small teams getting started with AI.",
+    type: "CORE_AI_PACK",
+    prices: [
+      {
+        id: `price_monthly_${EProductSubscriptionEnum.CORE_AI_PACK}`,
+        unit_amount: 5900, // $59.00 per month
+        recurring: "month",
+        currency: "usd",
+        workspace_amount: 5900,
+        product: EProductSubscriptionEnum.CORE_AI_PACK,
+      },
+    ],
+    payment_quantity: 1,
+    is_active: true,
+  },
+  [EProductSubscriptionEnum.SCALE_AI_PACK]: {
+    id: EProductSubscriptionEnum.SCALE_AI_PACK,
+    name: "Scale AI Pack",
+    description: "500 general runs or 100 code runs per month. Ideal for growing teams with high AI usage.",
+    type: "SCALE_AI_PACK",
+    prices: [
+      {
+        id: `price_monthly_${EProductSubscriptionEnum.SCALE_AI_PACK}`,
+        unit_amount: 24900, // $249.00 per month
+        recurring: "month",
+        currency: "usd",
+        workspace_amount: 24900,
+        product: EProductSubscriptionEnum.SCALE_AI_PACK,
+      },
+    ],
+    payment_quantity: 1,
+    is_active: true,
+  },
 };
 
 /**
@@ -116,6 +156,14 @@ export const SUBSCRIPTION_REDIRECTION_URLS: Record<EProductSubscriptionEnum, Rec
     month: TALK_TO_SALES_URL,
     year: TALK_TO_SALES_URL,
   },
+  [EProductSubscriptionEnum.CORE_AI_PACK]: {
+    month: "/settings/billing?plan=core-ai-pack&frequency=month", // Will be handled by direct Stripe checkout
+    year: "/settings/billing?plan=core-ai-pack&frequency=year", // Will be handled by direct Stripe checkout
+  },
+  [EProductSubscriptionEnum.SCALE_AI_PACK]: {
+    month: "/settings/billing?plan=scale-ai-pack&frequency=month", // Will be handled by direct Stripe checkout
+    year: "/settings/billing?plan=scale-ai-pack&frequency=year", // Will be handled by direct Stripe checkout
+  },
 };
 
 /**
@@ -127,4 +175,6 @@ export const SUBSCRIPTION_WEBPAGE_URLS: Record<EProductSubscriptionEnum, string>
   [EProductSubscriptionEnum.STARTER]: "https://plane.so/starter",
   [EProductSubscriptionEnum.PRO]: "https://plane.so/pro",
   [EProductSubscriptionEnum.ENTERPRISE]: "https://plane.so/enterprise",
+  [EProductSubscriptionEnum.CORE_AI_PACK]: "https://plane.so/ai-packs/core",
+  [EProductSubscriptionEnum.SCALE_AI_PACK]: "https://plane.so/ai-packs/scale",
 };

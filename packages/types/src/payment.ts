@@ -3,6 +3,8 @@ export enum EProductSubscriptionEnum {
   STARTER = "STARTER",
   PRO = "PRO",
   ENTERPRISE = "ENTERPRISE",
+  CORE_AI_PACK = "CORE_AI_PACK",
+  SCALE_AI_PACK = "SCALE_AI_PACK",
 }
 
 export type TBillingFrequency = "month" | "year";
@@ -16,7 +18,7 @@ export type IPaymentProductPrice = {
   workspace_amount: number;
 };
 
-export type TProductSubscriptionType = "FREE" | "STARTER" | "PRO" | "ENTERPRISE";
+export type TProductSubscriptionType = "FREE" | "STARTER" | "PRO" | "ENTERPRISE" | "CORE_AI_PACK" | "SCALE_AI_PACK";
 
 export type IPaymentProduct = {
   description: string;

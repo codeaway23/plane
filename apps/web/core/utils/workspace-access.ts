@@ -1,6 +1,7 @@
 import { WorkspaceService } from "@/services/workspace.service";
+import { API_BASE_URL } from "@plane/constants";
 
-const workspaceService = new WorkspaceService();
+const workspaceService = new WorkspaceService(API_BASE_URL);
 
 /**
  * Verify if the current user has access to a workspace

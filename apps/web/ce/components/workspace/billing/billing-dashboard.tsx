@@ -3,13 +3,16 @@ import { observer } from "mobx-react";
 // plane imports
 import { EProductSubscriptionEnum } from "@plane/types";
 import { Button, Loader } from "@plane/ui";
-import { CreditCard, Settings } from "lucide-react";
+import { CreditCard, Settings, Brain, Package } from "lucide-react";
 // components
 import { SettingsHeading } from "@/components/settings/heading";
-import { SubscriptionStatus } from "./subscription-status";
+import { ComprehensiveOverview } from "./comprehensive-overview";
 import { PlanManagement } from "./plan-management";
+import { AIUsageManagement } from "./ai-usage-management";
+import { AIPackManagement } from "./ai-pack-management";
 // services
 import { StripeService } from "@/services/stripe.service";
+import { AuthService } from "@/services/auth.service";
 import { useWorkspace } from "@/hooks/store/use-workspace";
 import { useUser } from "@/hooks/store/user";
 
@@ -24,7 +27,7 @@ interface SubscriptionData {
   product_id?: string;
 }
 
-type BillingTab = "overview" | "plans";
+type BillingTab = "overview" | "plans" | "ai-usage" | "ai-packs";
 
 export const BillingDashboard: FC = observer(() => {
   const { currentWorkspace } = useWorkspace();
@@ -40,11 +43,17 @@ export const BillingDashboard: FC = observer(() => {
     }
   }, [currentWorkspace, isAuthenticated]);
 
-  // Handle success parameter from Stripe checkout
+  // Handle success parameter from Stripe checkout and tab selection
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const success = urlParams.get("success");
     const sessionId = urlParams.get("session_id");
+    const tab = urlParams.get("tab");
+
+    // Set active tab if specified in URL
+    if (tab && ["overview", "plans", "ai-usage", "ai-packs"].includes(tab)) {
+      setActiveTab(tab as BillingTab);
+    }
 
     if (success === "true" && currentWorkspace && isAuthenticated) {
       // Handle checkout completion if session_id is provided
@@ -61,6 +70,21 @@ export const BillingDashboard: FC = observer(() => {
     }
   }, [currentWorkspace, isAuthenticated]);
 
+  // Handle tab change events from comprehensive overview
+  useEffect(() => {
+    const handleTabChange = (event: CustomEvent) => {
+      const tab = event.detail as BillingTab;
+      if (["overview", "plans", "ai-usage", "ai-packs"].includes(tab)) {
+        setActiveTab(tab);
+      }
+    };
+
+    window.addEventListener("billing-tab-change", handleTabChange as EventListener);
+    return () => {
+      window.removeEventListener("billing-tab-change", handleTabChange as EventListener);
+    };
+  }, []);
+
   const handleCheckoutCompletion = async (sessionId: string) => {
     if (!currentWorkspace) return;
 
@@ -70,12 +94,16 @@ export const BillingDashboard: FC = observer(() => {
     try {
       console.log("Handling checkout completion for session:", sessionId);
 
+      // Get CSRF token
+      const authService = new AuthService();
+      const csrfData = await authService.requestCSRFToken();
+
       // Call the checkout completion endpoint
       const response = await fetch("/api/stripe/checkout/complete/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "X-CSRFToken": getCookie("csrftoken") || "",
+          "X-CSRFToken": csrfData.csrf_token,
         },
         body: JSON.stringify({ session_id: sessionId }),
       });
@@ -142,6 +170,7 @@ export const BillingDashboard: FC = observer(() => {
     const priceIdMap: Record<string, EProductSubscriptionEnum> = {
       price_1S3sXzEPoCJr6b2KycIoGsqy: EProductSubscriptionEnum.STARTER,
       price_1S3sgqEPoCJr6b2K97l2hJU7: EProductSubscriptionEnum.PRO,
+      // Note: AI Pack subscriptions are handled separately and won't appear in main subscription data
     };
 
     return priceIdMap[subscriptionData.price_id] || EProductSubscriptionEnum.FREE;
@@ -164,6 +193,18 @@ export const BillingDashboard: FC = observer(() => {
       name: "Plans",
       icon: Settings,
       description: "Upgrade or downgrade your plan",
+    },
+    {
+      id: "ai-usage" as BillingTab,
+      name: "AI Usage",
+      icon: Brain,
+      description: "Manage AI usage subscriptions and billing",
+    },
+    {
+      id: "ai-packs" as BillingTab,
+      name: "AI Packs",
+      icon: Package,
+      description: "Subscribe to Core AI Pack or Scale AI Pack",
     },
   ];
 
@@ -226,9 +267,7 @@ export const BillingDashboard: FC = observer(() => {
 
       {/* Tab Content */}
       <div className="py-6">
-        {activeTab === "overview" && (
-          <SubscriptionStatus subscriptionData={subscriptionData} onSubscriptionUpdate={fetchSubscriptionData} />
-        )}
+        {activeTab === "overview" && <ComprehensiveOverview onSubscriptionUpdate={handleSubscriptionUpdate} />}
 
         {activeTab === "plans" && (
           <PlanManagement
@@ -237,6 +276,10 @@ export const BillingDashboard: FC = observer(() => {
             onPlanChange={fetchSubscriptionData}
           />
         )}
+
+        {activeTab === "ai-usage" && <AIUsageManagement />}
+
+        {activeTab === "ai-packs" && <AIPackManagement onSubscriptionUpdate={handleSubscriptionUpdate} />}
       </div>
     </div>
   );
