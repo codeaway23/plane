@@ -333,6 +333,7 @@ class StripeWebhookView(BaseAPIView):
         """Handle checkout.session.completed event"""
         session = event.get('data', {}).get('object', {})
         workspace_id = session.get('metadata', {}).get('workspace_id')
+        ai_usage = session.get('metadata', {}).get('ai_usage')
         
         if workspace_id:
             logger.info(f"Checkout completed for workspace: {workspace_id}")
@@ -341,13 +342,22 @@ class StripeWebhookView(BaseAPIView):
                 customer_id = session.get('customer')
                 
                 if customer_id:
-                    workspace.stripe_customer_id = customer_id
-                    workspace.save()
+                    # Always ensure workspace has customer ID
+                    if not workspace.stripe_customer_id:
+                        workspace.stripe_customer_id = customer_id
+                        workspace.save()
+                        logger.info(f"Updated workspace {workspace_id} with customer ID: {customer_id}")
                     
-                    # Fetch and update subscription data
-                    stripe_service = StripeService()
-                    subscription_data = stripe_service.get_customer_subscriptions(customer_id)
-                    stripe_service.update_workspace_subscription(workspace, subscription_data)
+                    # Handle AI usage subscriptions separately
+                    if ai_usage == 'true':
+                        logger.info(f"AI usage checkout completed for workspace {workspace_id}")
+                        # AI usage subscriptions are handled by the AI usage service
+                        # No need to update main workspace subscription data
+                    else:
+                        # Fetch and update subscription data
+                        stripe_service = StripeService()
+                        subscription_data = stripe_service.get_customer_subscriptions(customer_id)
+                        stripe_service.update_workspace_subscription(workspace, subscription_data)
                     
             except Workspace.DoesNotExist:
                 logger.error(f"Workspace {workspace_id} not found for checkout completion")
@@ -359,6 +369,7 @@ class StripeWebhookView(BaseAPIView):
         subscription = event.get('data', {}).get('object', {})
         workspace_id = subscription.get('metadata', {}).get('workspace_id')
         existing_subscription_id = subscription.get('metadata', {}).get('existing_subscription_id')
+        ai_usage = subscription.get('metadata', {}).get('ai_usage')
         
         if workspace_id:
             logger.info(f"Subscription created for workspace: {workspace_id}")
@@ -367,34 +378,43 @@ class StripeWebhookView(BaseAPIView):
                 customer_id = subscription.get('customer')
                 
                 if customer_id:
-                    workspace.stripe_customer_id = customer_id
-                    workspace.save()
+                    # Always ensure workspace has customer ID
+                    if not workspace.stripe_customer_id:
+                        workspace.stripe_customer_id = customer_id
+                        workspace.save()
+                        logger.info(f"Updated workspace {workspace_id} with customer ID: {customer_id}")
                     
-                    # Cancel existing subscription if there is one
-                    if existing_subscription_id and existing_subscription_id.strip():
-                        try:
-                            stripe_service = StripeService()
-                            logger.info(f"Cancelling existing subscription: {existing_subscription_id}")
-                            stripe_service.cancel_subscription(existing_subscription_id)
-                            logger.info(f"Successfully cancelled existing subscription: {existing_subscription_id}")
-                        except Exception as e:
-                            logger.error(f"Error cancelling existing subscription {existing_subscription_id}: {str(e)}")
-                    
-                    # Update subscription data
-                    stripe_service = StripeService()
-                    subscription_data = {
-                        'subscription': {
-                            'id': subscription.get('id'),
-                            'status': subscription.get('status'),
-                            'current_period_start': subscription.get('current_period_start'),
-                            'current_period_end': subscription.get('current_period_end'),
-                            'cancel_at_period_end': subscription.get('cancel_at_period_end'),
-                            'customer': customer_id,
-                            'price_id': subscription.get('items', {}).get('data', [{}])[0].get('price', {}).get('id'),
-                            'product_id': subscription.get('items', {}).get('data', [{}])[0].get('price', {}).get('product'),
+                    # Handle AI usage subscriptions separately
+                    if ai_usage == 'true':
+                        logger.info(f"AI usage subscription created for workspace {workspace_id}")
+                        # AI usage subscriptions are handled by the AI usage service
+                        # No need to update main workspace subscription data
+                    else:
+                        # Cancel existing subscription if there is one
+                        if existing_subscription_id and existing_subscription_id.strip():
+                            try:
+                                stripe_service = StripeService()
+                                logger.info(f"Cancelling existing subscription: {existing_subscription_id}")
+                                stripe_service.cancel_subscription(existing_subscription_id)
+                                logger.info(f"Successfully cancelled existing subscription: {existing_subscription_id}")
+                            except Exception as e:
+                                logger.error(f"Error cancelling existing subscription {existing_subscription_id}: {str(e)}")
+                        
+                        # Update subscription data
+                        stripe_service = StripeService()
+                        subscription_data = {
+                            'subscription': {
+                                'id': subscription.get('id'),
+                                'status': subscription.get('status'),
+                                'current_period_start': subscription.get('current_period_start'),
+                                'current_period_end': subscription.get('current_period_end'),
+                                'cancel_at_period_end': subscription.get('cancel_at_period_end'),
+                                'customer': customer_id,
+                                'price_id': subscription.get('items', {}).get('data', [{}])[0].get('price', {}).get('id'),
+                                'product_id': subscription.get('items', {}).get('data', [{}])[0].get('price', {}).get('product'),
+                            }
                         }
-                    }
-                    stripe_service.update_workspace_subscription(workspace, subscription_data)
+                        stripe_service.update_workspace_subscription(workspace, subscription_data)
                     
             except Workspace.DoesNotExist:
                 logger.error(f"Workspace {workspace_id} not found for subscription creation")
