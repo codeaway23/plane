@@ -9,6 +9,7 @@ from .asset import urlpatterns as asset_patterns
 from .user import urlpatterns as user_patterns
 from .stripe import urlpatterns as stripe_patterns
 from .ai_usage import urlpatterns as ai_usage_patterns
+from .ai_pack import urlpatterns as ai_pack_patterns
 
 urlpatterns = [
     *asset_patterns,
@@ -22,4 +23,5 @@ urlpatterns = [
     *user_patterns,
     *stripe_patterns,
     *ai_usage_patterns,
+    *ai_pack_patterns,
 ]
